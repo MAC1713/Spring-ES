@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.sunhr.sql.mapper.SqlMapper">
+
+    <select id="select" resultType="org.sunhr.sql.entity.CMS">
+        SELECT
+            d.f_info_id,
+            GROUP_CONCAT(DISTINCT l.f_node_id ORDER BY l.f_node_id ASC) AS f_node_ids,
+            d.f_title,
+            d.f_meta_description,
+            i.f_site_id,
+            i.f_publish_date,
+            GROUP_CONCAT(DISTINCT j.f_value ORDER BY j.f_value ASC) AS f_values,
+            GROUP_CONCAT(DISTINCT l.f_name ORDER BY l.f_name ASC) AS f_names,
+            GROUP_CONCAT(DISTINCT m.f_label ORDER BY m.f_label ASC) AS f_label,
+            UNIX_TIMESTAMP(i.f_publish_date) AS unix_ts_in_secs
+        FROM
+            cms_info_detail d
+        JOIN
+            cms_info i ON d.f_info_id = i.f_info_id
+        LEFT JOIN
+            cms_info_custom j ON d.f_info_id = j.f_info_id
+        LEFT JOIN
+            cms_info_node k ON d.f_info_id = k.f_info_id
+        LEFT JOIN
+            cms_node l ON k.f_node_id = l.f_node_id
+        LEFT JOIN
+            cms_model_field m ON l.f_info_model_id = m.f_model_id
+        WHERE
+            i.f_publish_date &lt; NOW()
+        GROUP BY
+            d.f_info_id, d.f_title, d.f_meta_description, i.f_publish_date
+        ORDER BY
+            i.f_publish_date ASC
+    </select>
+
+    <insert id="insertToEs" keyProperty="" useGeneratedKeys="true">
+        insert into cms_es(f_info_id, f_publish_date, f_site_id, f_meta_description, f_title, f_values, f_node_id, f_name, f_info_model_id, f_modefiel_id, f_model_id, f_label)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.fInfoId}, #{entity.fPublishDate}, #{entity.fSiteId}, #{entity.fMetaDescription}, #{entity.fTitle}, #{entity.fValues}, #{entity.fNodeId}, #{entity.fName}, #{entity.fInfoModelId}, #{entity.fModefielId}, #{entity.fModelId}, #{entity.fLabel})
+        </foreach>
+    </insert>
+
+    <select id="countCmsinfo" resultType="java.lang.Integer">
+        select count(0)
+        from cms_info
+    </select>
+
+    <select id="selectFromCmsinfo" resultType="org.sunhr.sql.entity.CMS">
+        select
+            f_info_id,f_publish_date,f_site_id
+        from
+            cms_info
+        where
+            f_publish_date &lt; NOW()
+        limit #{offset},#{limit}
+    </select>
+
+</mapper>
